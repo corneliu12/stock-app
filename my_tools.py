@@ -4,6 +4,10 @@ from datetime import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+def company_info(ticker):
+    company = yf.Ticker(ticker)
+    return company.info
+
 
 def download_stock_data(ticker, start_date, end_date=None):
     """
@@ -18,6 +22,7 @@ def download_stock_data(ticker, start_date, end_date=None):
         end_date = datetime.today().strftime('%Y-%m-%d')
     
     stock_data = yf.download(ticker, start=start_date, end=end_date)
+    
     return stock_data
 
 def plot_price(dataframe, ticker="", column='Adj Close'):

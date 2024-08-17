@@ -1,14 +1,26 @@
 import streamlit as st
-import pandas as pd
 import datetime
 import my_tools as mt
+import yfinance as yf  # Ensure yfinance is imported
 
 # Set the page configuration to wide mode
 st.set_page_config(layout="wide")
 
-# Ensure session state to store fetched data and selected SMA windows
+# Ensure session state to store fetched data, company name, symbol, and selected SMA windows
 if "data" not in st.session_state:
     st.session_state["data"] = None
+
+if "company_name" not in st.session_state:
+    st.session_state["company_name"] = None
+
+if "ticker" not in st.session_state:
+    st.session_state["ticker"] = "AAPL"
+
+if "start_date" not in st.session_state:
+    st.session_state["start_date"] = datetime.date(2023, 1, 1)
+
+if "end_date" not in st.session_state:
+    st.session_state["end_date"] = datetime.date.today()
 
 if "selected_windows" not in st.session_state:
     st.session_state["selected_windows"] = []
@@ -25,17 +37,36 @@ if page == "Data":
     col1, col2, col3 = st.columns([1, 1, 1])
 
     with col1:
-        ticker = st.text_input("Ticker Symbol", value="AAPL")
-        st.session_state["ticker"] = ticker  # Store ticker in session state
+        ticker = st.text_input("Ticker Symbol", value=st.session_state["ticker"])
     with col2:
-        start_date = st.date_input("Start Date", value=datetime.date(2023, 1, 1))
+        start_date = st.date_input("Start Date", value=st.session_state["start_date"])
     with col3:
-        end_date = st.date_input("End Date", value=datetime.date.today())
+        end_date = st.date_input("End Date", value=st.session_state["end_date"])
 
+    # Update session state when inputs change
+    st.session_state["ticker"] = ticker
+    st.session_state["start_date"] = start_date
+    st.session_state["end_date"] = end_date
+    
     # Fetch data button
     if st.button("Fetch Data"):
+        # Fetch stock data
         st.session_state["data"] = mt.download_stock_data(ticker, start_date, end_date)
+        
+        # Fetch company information
+        ticker_info = yf.Ticker(ticker)
+        st.session_state["company_name"] = ticker_info.info.get('shortName', 'N/A')
+        st.session_state["symbol"] = ticker_info.info.get('symbol', 'N/A')
+        
+        # Display the fetched data and company information
+        st.write(f"Company Name: {st.session_state['company_name']}")
         st.write(f"Showing data for {ticker} from {start_date} to {end_date}:")
+        st.dataframe(st.session_state["data"])
+    
+    # Display the stored data if it already exists
+    elif st.session_state["data"] is not None:
+        st.write(f"Company Name: {st.session_state['company_name']}")
+        st.write(f"Showing data for {st.session_state['ticker']} from {st.session_state['start_date']} to {st.session_state['end_date']}:")
         st.dataframe(st.session_state["data"])
 
 # SMA View
@@ -93,11 +124,16 @@ elif page == "Charts":
     st.title("Charts")
 
     if st.session_state.get("data") is not None and "ticker" in st.session_state and "created_smas" in st.session_state:
-        # User selects from created SMAs
-        ma1 = st.selectbox("Select first SMA for chart (MA1)", st.session_state["created_smas"])
-        ma2 = st.selectbox("Select second SMA for chart (MA2)", st.session_state["created_smas"])
+        # Create two columns
+        col1, col2 = st.columns(2)
 
+        # Place the selectboxes in the columns
+        with col1:
+            ma1 = st.selectbox(
+                "Select first SMA for chart (MA1)", st.session_state["created_smas"])
 
+        with col2:
+            ma2 = st.selectbox("Select second SMA for chart (MA2)", st.session_state["created_smas"])
 
         # Create the candlestick plot
         fig = mt.get_candlestick_plot(
