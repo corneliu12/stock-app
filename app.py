@@ -30,10 +30,11 @@ if "created_smas" not in st.session_state:
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Data",  "SMAs", "Charts", "Trading Strategy"])
+page = st.sidebar.radio("Go to VIEW", ["Data",  "SMAs", "Charts", "Trading Strategy"])
 
 # User instructions in the sidebar
-st.sidebar.info("Select a view from the sidebar. Start by fetching stock data, then calculate SMAs or view charts.")
+st.sidebar.title("Instructions:")
+st.sidebar.info("First get data from Data View, then calculate Simple Moving Averages (SMAs), then look at chart (interactive) and create a Trading Strategy to see if profitable or not.")
 
 # Data View
 if page == "Data":
