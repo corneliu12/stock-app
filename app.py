@@ -81,17 +81,20 @@ if page == "Data":
             st.session_state["target_median_price"] = ticker_info.info.get('targetMedianPrice', 'Not available')
 
             # Display the company information
-            
-            st.markdown(f"## Company Name: {st.session_state['company_name']}")
-            st.markdown(f"### Symbol: {ticker.upper()}")
-            st.write(f"**Current Price:** ${st.session_state['current_price']}")
+            st.markdown(f"## {st.session_state['company_name']} ({ticker.upper()})")            
+            st.markdown(f"#### Current Price: ${st.session_state['current_price']}")
+            st.write(f"**Sector:** {st.session_state['sector']}")
+            st.write(f"**Industry:** {st.session_state['industry']}")
+            st.write(f"**Annual Dividend:** {st.session_state['annual_dividend']}")
+
+
             st.write(f"**Sector:** {st.session_state['sector']}")
             st.write(f"**Industry:** {st.session_state['industry']}")
             st.write(f"**Annual Dividend:** {st.session_state['annual_dividend']}")
 
             # Display the analyst-related information
-            st.markdown("### Analyst Information")
-            st.write(f"**Recommendation:** {st.session_state['recommendation']}")
+            st.markdown("## Analyst Information")
+            st.markdown(f"#### Recommendation: {st.session_state['recommendation'].upper()}")
             st.write(f"**Recommendation Mean:** {st.session_state['recommendation_mean']}")
             st.write(f"**Number of Analysts:** {st.session_state['num_analysts']}")
             st.write(f"**Target Mean Price:** {st.session_state['target_mean_price']}")
@@ -107,16 +110,15 @@ if page == "Data":
     elif st.session_state["data"] is not None:
 
             # Display the company information
-            st.markdown(f"## Company Name: {st.session_state['company_name']}")
-            st.markdown(f"### Symbol: {ticker.upper()}")
-            st.write(f"**Current Price:** ${st.session_state['current_price']}")
+            st.markdown(f"## {st.session_state['company_name']} ({ticker.upper()})")            
+            st.markdown(f"#### Current Price: ${st.session_state['current_price']}")
             st.write(f"**Sector:** {st.session_state['sector']}")
             st.write(f"**Industry:** {st.session_state['industry']}")
             st.write(f"**Annual Dividend:** {st.session_state['annual_dividend']}")
 
             # Display the analyst-related information
-            st.markdown("### Analyst Information")
-            st.write(f"**Recommendation:** {st.session_state['recommendation']}")
+            st.markdown("## Analyst Information")
+            st.markdown(f"#### Recommendation: {st.session_state['recommendation'].upper()}")
             st.write(f"**Recommendation Mean:** {st.session_state['recommendation_mean']}")
             st.write(f"**Number of Analysts:** {st.session_state['num_analysts']}")
             st.write(f"**Target Mean Price:** {st.session_state['target_mean_price']}")
