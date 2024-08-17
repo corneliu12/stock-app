@@ -1,78 +1,123 @@
 import streamlit as st
-from datetime import datetime
+import pandas as pd
+import datetime
 import my_tools as mt
-import streamlit.components.v1 as components
 
-def main():
+# Set the page configuration to wide mode
+st.set_page_config(layout="wide")
+
+# Ensure session state to store fetched data and selected SMA windows
+if "data" not in st.session_state:
+    st.session_state["data"] = None
+
+if "selected_windows" not in st.session_state:
+    st.session_state["selected_windows"] = []
+
+# Sidebar for navigation
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to", ["Data",  "SMAs", "Charts", "Trading Strategy"])
+
+# Data View
+if page == "Data":
+    st.title("Data")
+
+    # Create columns for user input fields
+    col1, col2, col3 = st.columns([1, 1, 1])
+
+    with col1:
+        ticker = st.text_input("Ticker Symbol", value="AAPL")
+        st.session_state["ticker"] = ticker  # Store ticker in session state
+    with col2:
+        start_date = st.date_input("Start Date", value=datetime.date(2023, 1, 1))
+    with col3:
+        end_date = st.date_input("End Date", value=datetime.date.today())
+
+    # Fetch data button
+    if st.button("Fetch Data"):
+        st.session_state["data"] = mt.download_stock_data(ticker, start_date, end_date)
+        st.write(f"Showing data for {ticker} from {start_date} to {end_date}:")
+        st.dataframe(st.session_state["data"])
+
+# SMA View
+elif page == "SMAs":
+    st.title("SMAs")
+
+    if st.session_state["data"] is not None:
+        st.subheader("Select SMA Windows")
+
+        # Create two rows with 5 checkboxes each
+        col1, col2, col3, col4, col5 = st.columns(5)
+        with col1:
+            sma_2 = st.checkbox("SMA 2", value=2 in st.session_state["selected_windows"])
+            sma_3 = st.checkbox("SMA 3", value=3 in st.session_state["selected_windows"])
+        with col2:
+            sma_5 = st.checkbox("SMA 5", value=5 in st.session_state["selected_windows"])
+            sma_7 = st.checkbox("SMA 7", value=7 in st.session_state["selected_windows"])
+        with col3:
+            sma_10 = st.checkbox("SMA 10", value=10 in st.session_state["selected_windows"])
+            sma_14 = st.checkbox("SMA 14", value=14 in st.session_state["selected_windows"])
+        with col4:
+            sma_20 = st.checkbox("SMA 20", value=20 in st.session_state["selected_windows"])
+            sma_35 = st.checkbox("SMA 35", value=35 in st.session_state["selected_windows"])
+        with col5:
+            sma_50 = st.checkbox("SMA 50", value=50 in st.session_state["selected_windows"])
+            sma_100 = st.checkbox("SMA 100", value=100 in st.session_state["selected_windows"])
+
+        # Update the selected windows list
+        st.session_state["selected_windows"] = []
+        if sma_2: st.session_state["selected_windows"].append(2)
+        if sma_3: st.session_state["selected_windows"].append(3)
+        if sma_5: st.session_state["selected_windows"].append(5)
+        if sma_7: st.session_state["selected_windows"].append(7)
+        if sma_10: st.session_state["selected_windows"].append(10)
+        if sma_14: st.session_state["selected_windows"].append(14)
+        if sma_20: st.session_state["selected_windows"].append(20)
+        if sma_35: st.session_state["selected_windows"].append(35)
+        if sma_50: st.session_state["selected_windows"].append(50)
+        if sma_100: st.session_state["selected_windows"].append(100)
         
-    # Set page config to set the page title and layout
-    st.set_page_config(page_title="Stock Vision", layout="wide")
+        # Create SMA button
+        if st.button("Create SMA"):
+            if st.session_state["selected_windows"]:
+                sma_df = mt.create_moving_averages(st.session_state["data"], windows=st.session_state["selected_windows"])
+                st.session_state["created_smas"] = st.session_state["selected_windows"]
+                st.write("SMAs created for the following windows:", st.session_state["selected_windows"])
+                st.dataframe(sma_df)
+            else:
+                st.write("No SMA windows selected.")
+    else:
+        st.write("Please fetch data in the 'Data' view first.")
 
-    # Title of the main page
-    st.title('Stock Vision')
+# Charts View
+elif page == "Charts":
+    st.title("Charts")
 
-    # Sidebar elements
-    st.sidebar.header('Input Parameters')
-    ticker = st.sidebar.text_input("Ticker", value='SPY', max_chars=5)
-    start_date = st.sidebar.date_input("Start Date", value=datetime(2023, 1, 1))
-    end_date = st.sidebar.date_input("End Date", value=datetime(2023, 12, 31))
-
-    # Fetch Data button
-    if st.sidebar.button('Fetch Data'):
-        st.sidebar.write("Fetching data for:", ticker)
-        st.sidebar.write("From:", start_date)
-        st.sidebar.write("To:", end_date)
-        
-        df = mt.download_stock_data(ticker, start_date=start_date, end_date=end_date)        
-        st.sidebar.write("Data Loaded!!!")
-        message=f"Total days: {len(df)}"
-        st.sidebar.write(message)
+    if st.session_state.get("data") is not None and "ticker" in st.session_state and "created_smas" in st.session_state:
+        # User selects from created SMAs
+        ma1 = st.selectbox("Select first SMA for chart (MA1)", st.session_state["created_smas"])
+        ma2 = st.selectbox("Select second SMA for chart (MA2)", st.session_state["created_smas"])
 
 
-    main_view, chart_view, data_analysis = st.tabs(["Main View", "Charts", "Backtrade"])
 
-    with main_view:
-        title=f"{ticker} Data"
-        st.header(title)
-        st.write(df)
- 
-    with chart_view:
-        st.header("Charts")
-        fig = mt.plot_price(df, ticker)
+        # Create the candlestick plot
+        fig = mt.get_candlestick_plot(
+            df=st.session_state["data"],
+            ma1=ma1,
+            ma2=ma2,
+            ticker=st.session_state["ticker"] 
+        )
+
+        # Display the chart
         st.plotly_chart(fig)
-        st.subheader("Data")
-        df = mt.create_moving_averages(df)
-        df = mt.create_sma_signals(df)
-        df = mt.create_trade_signal(df, signal_column='Signal_5', sma_short='SMA_35', sma_long='SMA_50')
-        st.write(df)
-        
-        st.write("Table of Trades (click on columns to sort)")
-        trade_list = mt.create_trade_list(df, signal_column="trade_signal")
-        trade_table = mt.create_trade_table(trade_list)        
-        
-        st.write(trade_table)
-        st.write("Tabel of top performing trades")
-        top_trades_df = mt.get_top_trades(trade_table, 7)
-        st.write(top_trades_df)
-        st.write("Table of least performing trades")
-        worst_trades_df = mt.get_worst_trades(trade_table, 7)
-        st.write(worst_trades_df)
-  
-    with data_analysis:
-        st.header("Backtrade Analysis")
-        st.write("This tests the following strategy: Buy on Close when price crosses up the 5 SMA and sell next day close.")
-        results = mt.display_trade_summary(trade_table)
-        st.write(f"Total Trades: {results["Total Trades"]}")
-        st.write(f"Number of profitable trades: {results["Positive Trades"]}")
-        st.write(f"Total P&L per 1 share: ${results["Accumulated Profit"]:.2f}")
-        st.subheader("Top 5 Trades")        
-        for i in range(5):
-            st.write(f"Trade {i+1}")            
-            st.write(f"Date: {results["Top 5 Trades"][i]["Date"]}")
-            st.write(f"Buy Price: $ {results["Top 5 Trades"][i]["buy_price"]:.2f}")
-            st.write(f"Sell Price: $ {results["Top 5 Trades"][i]["sell_price"]:.2f}")
-            st.write(f"Trade P&L: ${results["Top 5 Trades"][i]["profit"]:.2f}")
-            st.write("------------")
+    else:
+        st.write("Please fetch data in the 'Data' view first.")
 
-if __name__ == "__main__":
-    main()
+# Trading Strategy View
+elif page == "Trading Strategy":
+    st.title("Trading Strategy")
+    st.write("Define your trading strategy here.")
+
+    # Example of a simple strategy explanation
+    st.write("**Strategy:** Buy when the Close is above SMA5. Sell when the Close drops below SMA10 or the entry day’s low.")
+    
+    # Additional strategy logic or visualization can go here
