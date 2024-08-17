@@ -3,7 +3,6 @@ import yfinance as yf
 from datetime import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import streamlit.components.v1 as components
 
 
 def download_stock_data(ticker, start_date, end_date=None):
