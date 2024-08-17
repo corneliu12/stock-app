@@ -25,9 +25,15 @@ if "end_date" not in st.session_state:
 if "selected_windows" not in st.session_state:
     st.session_state["selected_windows"] = []
 
+if "created_smas" not in st.session_state:
+    st.session_state["created_smas"] = []
+
 # Sidebar for navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["Data",  "SMAs", "Charts", "Trading Strategy"])
+
+# User instructions in the sidebar
+st.sidebar.info("Select a view from the sidebar. Start by fetching stock data, then calculate SMAs or view charts.")
 
 # Data View
 if page == "Data":
@@ -48,21 +54,24 @@ if page == "Data":
     st.session_state["start_date"] = start_date
     st.session_state["end_date"] = end_date
     
-    # Fetch data button
+    # Fetch data button with error handling
     if st.button("Fetch Data"):
-        # Fetch stock data
-        st.session_state["data"] = mt.download_stock_data(ticker, start_date, end_date)
-        
-        # Fetch company information
-        ticker_info = yf.Ticker(ticker)
-        st.session_state["company_name"] = ticker_info.info.get('shortName', 'N/A')
-        st.session_state["symbol"] = ticker_info.info.get('symbol', 'N/A')
-        
-        # Display the fetched data and company information
-        text = f"### Company Name: {st.session_state['company_name']} ({ticker.upper()})"
-        st.markdown(text)
-        st.write(f"Showing data for {ticker.upper()} from {start_date} to {end_date}:")
-        st.dataframe(st.session_state["data"])
+        try:
+            # Fetch stock data
+            st.session_state["data"] = mt.download_stock_data(ticker, start_date, end_date)
+            
+            # Fetch company information
+            ticker_info = yf.Ticker(ticker)
+            st.session_state["company_name"] = ticker_info.info.get('shortName', 'N/A')
+            st.session_state["symbol"] = ticker_info.info.get('symbol', 'N/A')
+            
+            # Display the fetched data and company information
+            text = f"### Company Name: {st.session_state['company_name']} ({ticker.upper()})"
+            st.markdown(text)
+            st.write(f"Showing data for {ticker.upper()} from {start_date} to {end_date}:")
+            st.dataframe(st.session_state["data"])
+        except Exception as e:
+            st.error(f"Failed to fetch data for {ticker}. Error: {e}")
     
     # Display the stored data if it already exists
     elif st.session_state["data"] is not None:
@@ -78,36 +87,20 @@ elif page == "SMAs":
     if st.session_state["data"] is not None:
         st.subheader("Select SMA Windows")
 
-        # Create two rows with 5 checkboxes each
-        col1, col2, col3, col4, col5 = st.columns(5)
-        with col1:
-            sma_2 = st.checkbox("SMA 2", value=2 in st.session_state["selected_windows"])
-            sma_3 = st.checkbox("SMA 3", value=3 in st.session_state["selected_windows"])
-        with col2:
-            sma_5 = st.checkbox("SMA 5", value=5 in st.session_state["selected_windows"])
-            sma_7 = st.checkbox("SMA 7", value=7 in st.session_state["selected_windows"])
-        with col3:
-            sma_10 = st.checkbox("SMA 10", value=10 in st.session_state["selected_windows"])
-            sma_14 = st.checkbox("SMA 14", value=14 in st.session_state["selected_windows"])
-        with col4:
-            sma_20 = st.checkbox("SMA 20", value=20 in st.session_state["selected_windows"])
-            sma_35 = st.checkbox("SMA 35", value=35 in st.session_state["selected_windows"])
-        with col5:
-            sma_50 = st.checkbox("SMA 50", value=50 in st.session_state["selected_windows"])
-            sma_100 = st.checkbox("SMA 100", value=100 in st.session_state["selected_windows"])
+        # Function to handle SMA selection
+        def get_sma_selection():
+            sma_options = {
+                "SMA 2": 2, "SMA 3": 3, "SMA 5": 5, "SMA 7": 7, "SMA 10": 10,
+                "SMA 14": 14, "SMA 20": 20, "SMA 35": 35, "SMA 50": 50, "SMA 100": 100
+            }
+            selected_windows = []
+            for key, value in sma_options.items():
+                if st.checkbox(key, value=value in st.session_state["selected_windows"]):
+                    selected_windows.append(value)
+            return selected_windows
 
         # Update the selected windows list
-        st.session_state["selected_windows"] = []
-        if sma_2: st.session_state["selected_windows"].append(2)
-        if sma_3: st.session_state["selected_windows"].append(3)
-        if sma_5: st.session_state["selected_windows"].append(5)
-        if sma_7: st.session_state["selected_windows"].append(7)
-        if sma_10: st.session_state["selected_windows"].append(10)
-        if sma_14: st.session_state["selected_windows"].append(14)
-        if sma_20: st.session_state["selected_windows"].append(20)
-        if sma_35: st.session_state["selected_windows"].append(35)
-        if sma_50: st.session_state["selected_windows"].append(50)
-        if sma_100: st.session_state["selected_windows"].append(100)
+        st.session_state["selected_windows"] = get_sma_selection()
         
         # Create SMA button
         if st.button("Create SMA"):
@@ -123,31 +116,35 @@ elif page == "SMAs":
 
 # Charts View
 elif page == "Charts":
-    chart_title = f"Chart for {st.session_state['company_name']}"
+    chart_title = f"Chart for {st.session_state['company_name']} ({st.session_state['ticker'].upper()})"
     st.title(chart_title)
 
     if st.session_state.get("data") is not None and "ticker" in st.session_state and "created_smas" in st.session_state:
         # Create two columns
         col1, col2 = st.columns(2)
 
-        # Place the selectboxes in the columns
-        with col1:
-            ma1 = st.selectbox(
-                "Select first SMA for chart (MA1)", st.session_state["created_smas"])
+        # Set default indexes for SMAs
+        if st.session_state.get("created_smas"):
+            ma1_index = 0
+            ma2_index = 1 if len(st.session_state["created_smas"]) > 1 else 0
 
-        with col2:
-            ma2 = st.selectbox("Select second SMA for chart (MA2)", st.session_state["created_smas"])
+            # Place the selectboxes in the columns
+            with col1:
+                ma1 = st.selectbox("Select first SMA for chart (MA1)", st.session_state["created_smas"], index=ma1_index)
 
-        # Create the candlestick plot
-        fig = mt.get_candlestick_plot(
-            df=st.session_state["data"],
-            ma1=ma1,
-            ma2=ma2,
-            ticker=st.session_state["ticker"] 
-        )
+            with col2:
+                ma2 = st.selectbox("Select second SMA for chart (MA2)", st.session_state["created_smas"], index=ma2_index)
 
-        # Display the chart
-        st.plotly_chart(fig)
+            # Create the candlestick plot
+            fig = mt.get_candlestick_plot(
+                df=st.session_state["data"],
+                ma1=ma1,
+                ma2=ma2,
+                ticker=st.session_state["ticker"] 
+            )
+
+            # Display the chart
+            st.plotly_chart(fig)
     else:
         st.write("Please fetch data in the 'Data' view first.")
 
@@ -156,7 +153,53 @@ elif page == "Trading Strategy":
     st.title("Trading Strategy")
     st.write("Define your trading strategy here.")
 
-    # Example of a simple strategy explanation
-    st.write("**Strategy Example:** Buy when the Close is above SMA5. Sell when the Close drops below SMA10 or the entry day’s low.")
-    
-    # Additional strategy logic or visualization can go here
+    # Assuming SMAs have been calculated and stored in st.session_state['created_smas']
+    st.session_state['created_smas'] = st.session_state.get('created_smas', ['SMA5', 'SMA10', 'SMA20'])
+
+    # Ensure all items in created_smas are strings
+    created_smas = [str(sma) for sma in st.session_state['created_smas']]
+
+    # Create a mapping of SMA values to descriptive labels
+    sma_labels = {sma: f"{sma.replace('SMA', '')} Day SMA" for sma in created_smas}
+    options = ["Close"] + list(sma_labels.values())
+
+    # Set up the layout with a single main column
+    col1 = st.columns(1)[0]
+
+    # Entry Strategy in the main column
+    with col1:
+        st.header("Entry Strategy")
+
+        # Create a single row with three columns for the inputs
+        entry_col1, entry_col2, entry_col3 = st.columns([1, 1, 1])
+
+        with entry_col1:
+            entry_sma1_label = st.selectbox("SMA", options, key='entry_sma1', help="Select the first SMA or Close for the entry condition.")
+            entry_sma1 = "Close" if entry_sma1_label == "Close" else [k for k, v in sma_labels.items() if v == entry_sma1_label][0]
+        with entry_col2:
+            entry_condition = st.selectbox("Condition", ["greater than", "less than"], key='entry_condition', help="Select the condition for the entry strategy.")
+        with entry_col3:
+            entry_sma2_label = st.selectbox("Compare to", options, key='entry_sma2', help="Select the second SMA or Close to compare with the first one.")
+            entry_sma2 = "Close" if entry_sma2_label == "Close" else [k for k, v in sma_labels.items() if v == entry_sma2_label][0]
+
+        # Display the chosen Entry Strategy
+        st.write(f"Entry Strategy: Enter when {entry_sma1_label} is {entry_condition} {entry_sma2_label}.")
+
+    # Exit Strategy directly below the Entry Strategy in the same column
+    with col1:
+        st.header("Exit Strategy")
+
+        # Create a single row with three columns for the inputs
+        exit_col1, exit_col2, exit_col3 = st.columns([1, 1, 1])
+
+        with exit_col1:
+            exit_sma1_label = st.selectbox("SMA", options, key='exit_sma1', help="Select the first SMA or Close for the exit condition.")
+            exit_sma1 = "Close" if exit_sma1_label == "Close" else [k for k, v in sma_labels.items() if v == exit_sma1_label][0]
+        with exit_col2:
+            exit_condition = st.selectbox("Condition", ["greater than", "less than"], key='exit_condition', help="Select the condition for the exit strategy.")
+        with exit_col3:
+            exit_sma2_label = st.selectbox("Compare to", options, key='exit_sma2', help="Select the second SMA or Close to compare with the first one.")
+            exit_sma2 = "Close" if exit_sma2_label == "Close" else [k for k, v in sma_labels.items() if v == exit_sma2_label][0]
+
+        # Display the chosen Exit Strategy
+        st.write(f"Exit Strategy: Exit when {exit_sma1_label} is {exit_condition} {exit_sma2_label}.")
