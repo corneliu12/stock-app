@@ -55,30 +55,74 @@ if page == "Data":
     st.session_state["end_date"] = end_date
     
     # Fetch data button with error handling
+
     if st.button("Fetch Data"):
         try:
-            # Fetch stock data
+            # Fetch stock data (download but don't display it)
             st.session_state["data"] = mt.download_stock_data(ticker, start_date, end_date)
-            
+
             # Fetch company information
             ticker_info = yf.Ticker(ticker)
-            st.session_state["company_name"] = ticker_info.info.get('shortName', 'N/A')
-            st.session_state["symbol"] = ticker_info.info.get('symbol', 'N/A')
+            st.session_state["company_name"] = ticker_info.info.get('shortName', 'Not available')
+            st.session_state["symbol"] = ticker_info.info.get('symbol', 'Not available')
+            st.session_state["sector"] = ticker_info.info.get('sector', 'Not available')
+            st.session_state["industry"] = ticker_info.info.get('industry', 'Not available')
+            st.session_state["annual_dividend"] = ticker_info.info.get('dividendRate', 'Not available')
+            st.session_state["current_price"] = ticker_info.info.get('currentPrice', 'Not available')
             
-            # Display the fetched data and company information
-            text = f"### Company Name: {st.session_state['company_name']} ({ticker.upper()})"
-            st.markdown(text)
-            st.write(f"Showing data for {ticker.upper()} from {start_date} to {end_date}:")
-            st.dataframe(st.session_state["data"])
+            # Fetch analyst-related information
+            st.session_state["recommendation"] = ticker_info.info.get('recommendationKey', 'Not available')
+            st.session_state["recommendation_mean"] = ticker_info.info.get('recommendationMean', 'Not available')
+            st.session_state["num_analysts"] = ticker_info.info.get('numberOfAnalystOpinions', 'Not available')
+            st.session_state["target_mean_price"] = ticker_info.info.get('targetMeanPrice', 'Not available')
+            st.session_state["target_high_price"] = ticker_info.info.get('targetHighPrice', 'Not available')
+            st.session_state["target_low_price"] = ticker_info.info.get('targetLowPrice', 'Not available')
+            st.session_state["target_median_price"] = ticker_info.info.get('targetMedianPrice', 'Not available')
+
+            # Display the company information
+            
+            st.markdown(f"## Company Name: {st.session_state['company_name']}")
+            st.markdown(f"### Symbol: {ticker.upper()}")
+            st.write(f"**Current Price:** ${st.session_state['current_price']}")
+            st.write(f"**Sector:** {st.session_state['sector']}")
+            st.write(f"**Industry:** {st.session_state['industry']}")
+            st.write(f"**Annual Dividend:** {st.session_state['annual_dividend']}")
+
+            # Display the analyst-related information
+            st.markdown("### Analyst Information")
+            st.write(f"**Recommendation:** {st.session_state['recommendation']}")
+            st.write(f"**Recommendation Mean:** {st.session_state['recommendation_mean']}")
+            st.write(f"**Number of Analysts:** {st.session_state['num_analysts']}")
+            st.write(f"**Target Mean Price:** {st.session_state['target_mean_price']}")
+            st.write(f"**Target High Price:** {st.session_state['target_high_price']}")
+            st.write(f"**Target Low Price:** {st.session_state['target_low_price']}")
+            st.write(f"**Target Median Price:** {st.session_state['target_median_price']}")
+
         except Exception as e:
             st.error(f"Failed to fetch data for {ticker}. Error: {e}")
-    
-    # Display the stored data if it already exists
+
+
+    # Display the stored company information if it already exists
     elif st.session_state["data"] is not None:
-        text = f"### Company Name: {st.session_state['company_name']} ({ticker.upper()})"
-        st.markdown(text)
-        st.write(f"Showing data for {st.session_state['ticker'].upper()} from {st.session_state['start_date']} to {st.session_state['end_date']}:")
-        st.dataframe(st.session_state["data"])
+
+            # Display the company information
+            st.markdown(f"## Company Name: {st.session_state['company_name']}")
+            st.markdown(f"### Symbol: {ticker.upper()}")
+            st.write(f"**Current Price:** ${st.session_state['current_price']}")
+            st.write(f"**Sector:** {st.session_state['sector']}")
+            st.write(f"**Industry:** {st.session_state['industry']}")
+            st.write(f"**Annual Dividend:** {st.session_state['annual_dividend']}")
+
+            # Display the analyst-related information
+            st.markdown("### Analyst Information")
+            st.write(f"**Recommendation:** {st.session_state['recommendation']}")
+            st.write(f"**Recommendation Mean:** {st.session_state['recommendation_mean']}")
+            st.write(f"**Number of Analysts:** {st.session_state['num_analysts']}")
+            st.write(f"**Target Mean Price:** {st.session_state['target_mean_price']}")
+            st.write(f"**Target High Price:** {st.session_state['target_high_price']}")
+            st.write(f"**Target Low Price:** {st.session_state['target_low_price']}")
+            st.write(f"**Target Median Price:** {st.session_state['target_median_price']}")
+
 
 # SMA View
 elif page == "SMAs":
