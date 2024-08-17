@@ -59,14 +59,16 @@ if page == "Data":
         st.session_state["symbol"] = ticker_info.info.get('symbol', 'N/A')
         
         # Display the fetched data and company information
-        st.write(f"Company Name: {st.session_state['company_name']}")
-        st.write(f"Showing data for {ticker} from {start_date} to {end_date}:")
+        text = f"### Company Name: {st.session_state['company_name']} ({ticker.upper()})"
+        st.markdown(text)
+        st.write(f"Showing data for {ticker.upper()} from {start_date} to {end_date}:")
         st.dataframe(st.session_state["data"])
     
     # Display the stored data if it already exists
     elif st.session_state["data"] is not None:
-        st.write(f"Company Name: {st.session_state['company_name']}")
-        st.write(f"Showing data for {st.session_state['ticker']} from {st.session_state['start_date']} to {st.session_state['end_date']}:")
+        text = f"### Company Name: {st.session_state['company_name']} ({ticker.upper()})"
+        st.markdown(text)
+        st.write(f"Showing data for {st.session_state['ticker'].upper()} from {st.session_state['start_date']} to {st.session_state['end_date']}:")
         st.dataframe(st.session_state["data"])
 
 # SMA View
@@ -121,7 +123,8 @@ elif page == "SMAs":
 
 # Charts View
 elif page == "Charts":
-    st.title("Charts")
+    chart_title = f"Chart for {st.session_state['company_name']}"
+    st.title(chart_title)
 
     if st.session_state.get("data") is not None and "ticker" in st.session_state and "created_smas" in st.session_state:
         # Create two columns
