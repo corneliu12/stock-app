@@ -19,7 +19,7 @@ page = st.sidebar.radio("Go to", ["Data",  "SMAs", "Charts", "Trading Strategy"]
 
 # Data View
 if page == "Data":
-    st.title("Data")
+    st.title("Stock Data")
 
     # Create columns for user input fields
     col1, col2, col3 = st.columns([1, 1, 1])
@@ -118,6 +118,6 @@ elif page == "Trading Strategy":
     st.write("Define your trading strategy here.")
 
     # Example of a simple strategy explanation
-    st.write("**Strategy:** Buy when the Close is above SMA5. Sell when the Close drops below SMA10 or the entry day’s low.")
+    st.write("**Strategy Example:** Buy when the Close is above SMA5. Sell when the Close drops below SMA10 or the entry day’s low.")
     
     # Additional strategy logic or visualization can go here
