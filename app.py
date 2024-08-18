@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import datetime
 import my_tools as mt
 import yfinance as yf  # Ensure yfinance is imported
@@ -30,7 +31,7 @@ if "created_smas" not in st.session_state:
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to VIEW", ["Data",  "SMAs", "Charts", "Trading Strategy"])
+page = st.sidebar.radio("Go to VIEW", ["Data",  "SMAs", "Charts", "Trading Strategy", "Analyze Strategy"])
 
 # User instructions in the sidebar
 st.sidebar.title("Instructions:")
@@ -274,3 +275,45 @@ elif page == "Trading Strategy":
             st.dataframe(st.session_state["data"])
         else:
             st.error("No data available. Please ensure data is loaded first.")
+
+# Analyze Strategy View
+
+# Initialize session state for trades_df
+if "trades_df" not in st.session_state:
+    st.session_state["trades_df"] = pd.DataFrame(columns=['Entry Date', 'Entry Price', 'Exit Date', 'Exit Price', 'Quantity', 'Profit/Loss'])
+
+
+elif page == "Analyze Strategy":
+    st.title("Analyze Strategy")
+    st.write("Analyze the performance of your trading strategy.")
+
+    if st.button("Analyze"):
+
+        # Reset trades_df before analyzing
+        st.session_state["trades_df"] = pd.DataFrame(columns=['Entry Date', 'Entry Price', 'Exit Date', 'Exit Price', 'Quantity', 'Profit/Loss', 'Profit/Loss (%)'])
+
+        # Process trades and populate trades_df
+        st.session_state["trades_df"] = mt.process_trades(st.session_state["data"], st.session_state["trades_df"], quantity=1)
+        st.success("Analysis complete! Trades recorded.")
+
+        # Analyze the trades in trades_df
+        if len(st.session_state["trades_df"]) > 0:
+            metrics = mt.analyze_strategy(st.session_state["trades_df"])
+
+            st.markdown("### Strategy Performance Metrics")
+            st.write(f"**Total Trades:** {metrics['Total Trades']}")
+            st.write(f"**Total Profit/Loss:** {metrics['Total Profit/Loss']}")
+            st.write(f"**Total Profit/Loss (%):** {metrics['Total Profit/Loss (%)']}")
+            st.write(f"**Average Profit/Loss per Trade:** {metrics['Average Profit/Loss per Trade']}")
+            st.write(f"**Maximum Profit:** {metrics['Maximum Profit']}")
+            st.write(f"**Maximum Loss:** {metrics['Maximum Loss']}")
+            st.write(f"**Profitable Trades:** {metrics['Profitable Trades']}")
+            st.write(f"**Total Quantity Traded:** {metrics['Total Quantity Traded']}")
+            st.write(f"**Total Buy Price:** {metrics['Total Buy Price']}")
+            st.write(f"**Total Sale Price:** {metrics['Total Sale Price']}")
+
+
+            st.markdown("### Recorded Trades")
+            st.dataframe(st.session_state["trades_df"])
+        else:
+            st.warning("No trades recorded yet. Please define and execute a strategy first.")

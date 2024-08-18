@@ -352,4 +352,110 @@ def generate_signal(df, sma1, condition, sma2):
     else:
         raise ValueError("Condition must be either 'greater than' or 'less than'.")
 
+# Function to record a trade
 
+def record_trade(trades_df, entry_date, entry_price, exit_date, exit_price, quantity):
+    """
+    Records a trade by appending a new row to the trades_df DataFrame.
+    
+    Args:
+    - trades_df: The DataFrame that records all trades.
+    - entry_date: The date of the entry signal.
+    - entry_price: The price at entry.
+    - exit_date: The date of the exit signal.
+    - exit_price: The price at exit.
+    - quantity: The number of units traded.
+    
+    Returns:
+    - trades_df: The updated DataFrame with the new trade recorded.
+    """
+    profit_loss = (exit_price - entry_price) * quantity
+    profit_loss_percent = ((exit_price - entry_price) / entry_price) * 100
+    
+    new_trade = pd.DataFrame({
+        'Entry Date': [entry_date],
+        'Entry Price': [entry_price],
+        'Exit Date': [exit_date],
+        'Exit Price': [exit_price],
+        'Quantity': [quantity],
+        'Profit/Loss': [profit_loss],
+        'Profit/Loss (%)': [profit_loss_percent]
+    })
+    
+    # If trades_df is empty, directly assign the new trade DataFrame to trades_df
+    if trades_df.empty:
+        trades_df = new_trade
+    else:
+        trades_df = pd.concat([trades_df, new_trade], ignore_index=True)
+    
+    return trades_df
+
+
+def process_trades(df, trades_df, quantity):
+    """
+    Iterates over a DataFrame to find entry and exit signals, recording trades accordingly.
+    
+    Args:
+    - df: The DataFrame containing 'Entry_Signal' and 'Exit_Signal'.
+    - trades_df: The DataFrame where trades are recorded.
+    - quantity: The number of units traded for each trade.
+    
+    Returns:
+    - trades_df: The updated DataFrame with all trades recorded.
+    """
+    in_trade = False
+    entry_date = None
+    entry_price = None
+    
+    for index, row in df.iterrows():
+        # Check for entry signal: it should be True, and exit signal should be False
+        if not in_trade and row['Entry_Signal'] and not row['Exit_Signal']:
+            entry_date = row.name
+            entry_price = row['Close']
+            in_trade = True
+        # Check for exit signal: only process if currently in a trade
+        elif in_trade and row['Exit_Signal']:
+            exit_date = row.name
+            exit_price = row['Close']
+            trades_df = record_trade(trades_df, entry_date, entry_price, exit_date, exit_price, quantity)
+            in_trade = False
+    
+    return trades_df
+
+def analyze_strategy(trades_df):
+    """
+    Analyzes the recorded trades and provides performance metrics.
+    
+    Args:
+    - trades_df: The DataFrame containing recorded trades.
+    
+    Returns:
+    - metrics: A dictionary of calculated performance metrics.
+    """
+    total_trades = len(trades_df)
+    total_profit_loss = trades_df['Profit/Loss'].sum()
+    total_profit_loss_percent = trades_df['Profit/Loss (%)'].sum()
+    average_profit_loss = trades_df['Profit/Loss'].mean() if total_trades > 0 else 0
+    max_profit = trades_df['Profit/Loss'].max() if total_trades > 0 else 0
+    max_loss = trades_df['Profit/Loss'].min() if total_trades > 0 else 0
+    profitable_trades = (trades_df['Profit/Loss'] > 0).sum()
+    total_quantity = trades_df['Quantity'].sum()
+
+    # Calculate total price for buys and sales
+    total_buy_price = (trades_df['Entry Price'] * trades_df['Quantity']).sum()
+    total_sale_price = (trades_df['Exit Price'] * trades_df['Quantity']).sum()
+
+    metrics = {
+        'Total Trades': total_trades,
+        'Total Profit/Loss': total_profit_loss,
+        'Total Profit/Loss (%)': total_profit_loss_percent,
+        'Average Profit/Loss per Trade': average_profit_loss,
+        'Maximum Profit': max_profit,
+        'Maximum Loss': max_loss,
+        'Profitable Trades': profitable_trades,
+        'Total Quantity Traded': total_quantity,
+        'Total Buy Price': total_buy_price,
+        'Total Sale Price': total_sale_price
+    }
+    
+    return metrics
