@@ -328,3 +328,28 @@ def get_candlestick_plot(
     )
     
     return fig
+
+def generate_signal(df, sma1, condition, sma2):
+    """
+    Generates a signal column based on the condition between two SMAs or an SMA and the Close price.
+    
+    Args:
+    - df: DataFrame containing the stock data and SMAs.
+    - sma1: The first SMA (or 'Close') to compare.
+    - condition: The condition ('greater than' or 'less than').
+    - sma2: The second SMA (or 'Close') to compare against.
+    
+    Returns:
+    - A Series with True/False values indicating where the condition is met.
+    """
+    series1 = df[sma1] if sma1 != 'Close' else df['Close']
+    series2 = df[sma2] if sma2 != 'Close' else df['Close']
+    
+    if condition == 'greater than':
+        return series1 > series2
+    elif condition == 'less than':
+        return series1 < series2
+    else:
+        raise ValueError("Condition must be either 'greater than' or 'less than'.")
+
+

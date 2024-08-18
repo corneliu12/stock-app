@@ -195,20 +195,22 @@ elif page == "Charts":
     else:
         st.write("Please fetch data in the 'Data' view first.")
 
+
+
 # Trading Strategy View
 elif page == "Trading Strategy":
     st.title("Trading Strategy")
     st.write("Define your trading strategy here.")
 
     # Assuming SMAs have been calculated and stored in st.session_state['created_smas']
-    st.session_state['created_smas'] = st.session_state.get('created_smas', ['SMA5', 'SMA10', 'SMA20'])
+    st.session_state['created_smas'] = st.session_state.get('created_smas', [5, 10, 20])
 
-    # Ensure all items in created_smas are strings
-    created_smas = [str(sma) for sma in st.session_state['created_smas']]
-
-    # Create a mapping of SMA values to descriptive labels
-    sma_labels = {sma: f"{sma.replace('SMA', '')} Day SMA" for sma in created_smas}
+    # Map the SMA windows to their column names in the DataFrame
+    sma_labels = {f"SMA_{window}": f"{window} Day SMA" for window in st.session_state['created_smas']}
     options = ["Close"] + list(sma_labels.values())
+
+    # Map labels back to actual column names in DataFrame
+    label_to_column = {v: k for k, v in sma_labels.items()}
 
     # Set up the layout with a single main column
     col1 = st.columns(1)[0]
@@ -222,15 +224,12 @@ elif page == "Trading Strategy":
 
         with entry_col1:
             entry_sma1_label = st.selectbox("SMA", options, key='entry_sma1', help="Select the first SMA or Close for the entry condition.")
-            entry_sma1 = "Close" if entry_sma1_label == "Close" else [k for k, v in sma_labels.items() if v == entry_sma1_label][0]
+            entry_sma1 = "Close" if entry_sma1_label == "Close" else label_to_column[entry_sma1_label]
         with entry_col2:
             entry_condition = st.selectbox("Condition", ["greater than", "less than"], key='entry_condition', help="Select the condition for the entry strategy.")
         with entry_col3:
             entry_sma2_label = st.selectbox("Compare to", options, key='entry_sma2', help="Select the second SMA or Close to compare with the first one.")
-            entry_sma2 = "Close" if entry_sma2_label == "Close" else [k for k, v in sma_labels.items() if v == entry_sma2_label][0]
-
-        # Display the chosen Entry Strategy
-        st.write(f"Entry Strategy: Enter when {entry_sma1_label} is {entry_condition} {entry_sma2_label}.")
+            entry_sma2 = "Close" if entry_sma2_label == "Close" else label_to_column[entry_sma2_label]
 
     # Exit Strategy directly below the Entry Strategy in the same column
     with col1:
@@ -241,12 +240,37 @@ elif page == "Trading Strategy":
 
         with exit_col1:
             exit_sma1_label = st.selectbox("SMA", options, key='exit_sma1', help="Select the first SMA or Close for the exit condition.")
-            exit_sma1 = "Close" if exit_sma1_label == "Close" else [k for k, v in sma_labels.items() if v == exit_sma1_label][0]
+            exit_sma1 = "Close" if exit_sma1_label == "Close" else label_to_column[exit_sma1_label]
         with exit_col2:
             exit_condition = st.selectbox("Condition", ["greater than", "less than"], key='exit_condition', help="Select the condition for the exit strategy.")
         with exit_col3:
             exit_sma2_label = st.selectbox("Compare to", options, key='exit_sma2', help="Select the second SMA or Close to compare with the first one.")
-            exit_sma2 = "Close" if exit_sma2_label == "Close" else [k for k, v in sma_labels.items() if v == exit_sma2_label][0]
+            exit_sma2 = "Close" if exit_sma2_label == "Close" else label_to_column[exit_sma2_label]
 
-        # Display the chosen Exit Strategy
-        st.write(f"Exit Strategy: Exit when {exit_sma1_label} is {exit_condition} {exit_sma2_label}.")
+    # Display strategy summary with styling
+    st.markdown(
+        f"""
+        #### **Your Strategy:** 
+        <span style='color:green; font-weight:bold'>BUY</span> when {entry_sma1_label} is {entry_condition} {entry_sma2_label}, and 
+        <span style='color:red; font-weight:bold'>SELL</span> when {exit_sma1_label} is {exit_condition} {exit_sma2_label}.
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # Create a "Create Strategy" button to generate the signals
+    if st.button("Create Strategy"):
+        if st.session_state.get("data") is not None:
+            # Generate the Entry_Signal column
+            st.session_state["data"]['Entry_Signal'] = mt.generate_signal(st.session_state["data"], entry_sma1, entry_condition, entry_sma2)
+
+            # Generate the Exit_Signal column
+            st.session_state["data"]['Exit_Signal'] = mt.generate_signal(st.session_state["data"], exit_sma1, exit_condition, exit_sma2)
+
+            st.success("Strategy created successfully!")
+
+            # Optionally, display the DataFrame with the new signals
+            st.markdown("### Dataframe with Strategy Signals")
+            st.dataframe(st.session_state["data"])
+        else:
+            st.error("No data available. Please ensure data is loaded first.")
